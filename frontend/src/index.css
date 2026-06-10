@@ -1,34 +1,112 @@
 @import "tailwindcss";
 @import 'leaflet/dist/leaflet.css';
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
 :root {
-  /* Backgrounds */
-  --bg-base:     #030712;   /* Canvas — deepest black */
-  --bg-surface:  #0f172a;   /* Panels, cards, sidebars */
-  --bg-elevated: #1e293b;   /* Hover states, modals */
+  /* ─── BACKGROUNDS ─────────────────────────────────────── */
+  --bg-void:      #000000;  /* True black — used only as outermost body */
+  --bg-base:      #030712;  /* Near-black — main canvas, map background */
+  --bg-surface:   #0f172a;  /* Panels, sidebars, cards */
+  --bg-elevated:  #1e293b;  /* Hover states, dropdowns, modals backdrop */
+  --bg-overlay:   #0f172aCC; /* Semi-transparent overlay (80% opacity) */
 
-  /* Borders */
-  --border-subtle:  #1e293b;
-  --border-default: #334155;
+  /* ─── BORDERS ──────────────────────────────────────────── */
+  --border-invisible: #0f172a;  /* Same as surface — zero-contrast dividers */
+  --border-subtle:    #1e293b;  /* Low-contrast structural dividers */
+  --border-default:   #334155;  /* Standard borders on cards, inputs */
+  --border-strong:    #475569;  /* Focused states, active selections */
+  --border-white:     #f8fafc1A; /* 10% white — hero section borders */
 
-  /* Typography */
-  --text-primary:   #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted:     #475569;
+  /* ─── TEXT ─────────────────────────────────────────────── */
+  --text-primary:   #f8fafc;  /* Main content — pure near-white */
+  --text-secondary: #94a3b8;  /* Supporting labels, captions */
+  --text-muted:     #475569;  /* Timestamps, metadata, placeholders */
+  --text-disabled:  #1e293b;  /* Disabled states */
+  --text-inverse:   #030712;  /* Text on light/colored backgrounds */
 
-  /* Status Colors (Tricolor System) */
-  --status-active:   #22c55e;   /* Green  — safe, moving */
-  --status-warning:  #f59e0b;   /* Amber  — weather alert or proximity warning */
-  --status-critical: #ef4444;   /* Red    — AI rerouting triggered */
+  /* ─── STATUS TRICOLOR SYSTEM ───────────────────────────── */
+  /* RULE: These 3 colors appear NOWHERE except for status communication */
 
-  /* Glow Effects */
-  --glow-green:  0 0 20px rgba(34, 197, 94, 0.3);
-  --glow-amber:  0 0 20px rgba(245, 158, 11, 0.3);
-  --glow-red:    0 0 20px rgba(239, 68, 68, 0.4);
+  --status-safe:       #22c55e;   /* Green  — ACTIVE, clear, operational */
+  --status-safe-dim:   #16a34a33; /* Green at 20% opacity — backgrounds */
+  --status-safe-glow:  0 0 16px rgba(34, 197, 94, 0.35);
 
-  /* Interactive */
-  --accent-blue: #3b82f6;
+  --status-warn:       #f59e0b;   /* Amber  — WARNING, proximity alert */
+  --status-warn-dim:   #d9770633; /* Amber at 20% opacity */
+  --status-warn-glow:  0 0 16px rgba(245, 158, 11, 0.35);
+
+  --status-critical:   #ef4444;   /* Red    — REROUTED, danger, collision */
+  --status-critical-dim: #dc262633; /* Red at 20% opacity */
+  --status-critical-glow: 0 0 20px rgba(239, 68, 68, 0.45);
+
+  /* ─── INTERACTIVE / ACCENT ──────────────────────────────── */
+  --accent-blue:       #3b82f6;   /* Buttons, links, interactive elements */
   --accent-blue-hover: #2563eb;
+  --accent-blue-dim:   #3b82f61A;
+  --accent-blue-glow:  0 0 16px rgba(59, 130, 246, 0.4);
+
+  /* ─── WHITES (for clean sections) ───────────────────────── */
+  --white-100: #ffffff;
+  --white-95:  #f8fafc;
+  --white-80:  #cbd5e1;
+  --white-60:  #94a3b8;
+  --white-40:  #64748b;
+  --white-20:  #334155;
+  --white-10:  #1e293b;
+  --white-05:  #0f172a;
+
+  /* ─── FONT FAMILIES ─────────────────────────────────────── */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body:    'Inter', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+
+  /* ─── TYPE SCALE ────────────────────────────────────────── */
+  --text-xs:   11px;   /* Timestamps, metadata labels */
+  --text-sm:   12px;   /* Captions, secondary info */
+  --text-base: 13px;   /* Default body text */
+  --text-md:   15px;   /* Card titles, nav items */
+  --text-lg:   18px;   /* Section headers */
+  --text-xl:   22px;   /* Page titles */
+  --text-2xl:  28px;   /* Dashboard stat numbers */
+  --text-3xl:  36px;   /* Hero numbers, crisis counts */
+
+  /* ─── LETTER SPACING ──────────────────────────────────────*/
+  --tracking-tight:  -0.02em;
+  --tracking-normal:  0;
+  --tracking-wide:    0.06em;   /* Used on ALL-CAPS labels */
+  --tracking-widest:  0.12em;   /* Used on category eyebrows */
+
+  /* ─── LINE HEIGHT ─────────────────────────────────────────*/
+  --leading-tight:  1.2;
+  --leading-normal: 1.5;
+  --leading-loose:  1.8;
+
+  /* ─── SPACING SCALE ─────────────────────────────────────── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ─── BORDER RADIUS ─────────────────────────────────────── */
+  --radius-sm:   3px;   /* Badges, status chips */
+  --radius-md:   6px;   /* Cards, inputs, buttons */
+  --radius-lg:   10px;  /* Modals, large panels */
+  --radius-full: 9999px; /* Pills */
+
+  /* ─── Z-INDEX SCALE ─────────────────────────────────────── */
+  --z-base:    0;
+  --z-raised:  10;
+  --z-sidebar: 100;
+  --z-header:  200;
+  --z-modal:   500;
+  --z-toast:   900;
+  --z-top:     1000;
 }
 
 html, body, #root {
@@ -36,9 +114,9 @@ html, body, #root {
   padding: 0;
   width: 100%;
   height: 100%;
-  background-color: #0b0f19;
-  color: #f8fafc;
-  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-body);
   overflow: hidden;
 }
 
@@ -48,63 +126,61 @@ html, body, #root {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0b0f19;
+  background: var(--bg-void);
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: var(--bg-elevated);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: var(--border-default);
 }
 
 /* Leaflet dark theme modifications */
 .leaflet-container {
-  background: #0b0f19 !important;
+  background: var(--bg-base) !important;
   font-family: inherit;
 }
 
-/* Hide zoom controls to maintain minimal tactical dashboard aesthetic */
 .leaflet-control-zoom {
-  border: 1px solid #1e293b !important;
-  background: #0f172a !important;
+  border: 1px solid var(--border-subtle) !important;
+  background: var(--bg-surface) !important;
 }
 
 .leaflet-control-zoom-in, .leaflet-control-zoom-out {
-  background-color: #0f172a !important;
-  color: #94a3b8 !important;
-  border-bottom: 1px solid #1e293b !important;
+  background-color: var(--bg-surface) !important;
+  color: var(--text-secondary) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
 }
 
 .leaflet-control-zoom-in:hover, .leaflet-control-zoom-out:hover {
-  background-color: #1e293b !important;
-  color: #f8fafc !important;
+  background-color: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
 }
 
-/* Custom pulsing animations for hazards on the map */
+/* Ambient Threat Pulse animation */
 .hazard-pulse {
   position: relative;
 }
-
 .hazard-pulse::after {
   content: '';
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.3);
   position: absolute;
   top: 0;
   left: 0;
-  animation: mapPulse 2s infinite ease-out;
+  animation: threatPulse 1.5s infinite ease-out;
 }
 
-@keyframes mapPulse {
+@keyframes threatPulse {
   0% {
-    transform: scale(0.6);
+    transform: scale(0.8);
     opacity: 0.8;
   }
   100% {
-    transform: scale(2.2);
+    transform: scale(2.4);
     opacity: 0;
   }
 }
@@ -113,7 +189,6 @@ html, body, #root {
 .glow-text-amber {
   text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
 }
-
 .glow-text-red {
   text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
 }

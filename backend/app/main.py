@@ -161,6 +161,26 @@ def get_customs_buffers(db: Session = Depends(get_db)):
     buffers = db.query(models.CustomsBuffer).all()
     return buffers
 
+from .services.routing_engine import get_osrm_route
+
+class VesselCreateRequest(BaseModel):
+    name: str
+    type: str = "CONTAINER"
+    latitude: float
+    longitude: float
+    destination_port_id: str = None
+    speed_knots: float = 15.0
+    status: str = "SAILING"
+
+class VesselUpdateRequest(BaseModel):
+    name: str = None
+    type: str = None
+    latitude: float = None
+    longitude: float = None
+    destination_port_id: str = None
+    speed_knots: float = None
+    status: str = None
+
 @app.get("/api/vessels")
 def get_vessels(db: Session = Depends(get_db)):
     vessels = db.query(models.Vessel).all()
@@ -181,6 +201,111 @@ def get_vessels(db: Session = Depends(get_db)):
             "updated_at": v.updated_at.isoformat() if v.updated_at else None
         })
     return result
+
+@app.post("/api/vessels")
+async def create_vessel(payload: VesselCreateRequest, db: Session = Depends(get_db)):
+    vessel = models.Vessel(
+        name=payload.name,
+        type=payload.type,
+        latitude=payload.latitude,
+        longitude=payload.longitude,
+        destination_port_id=payload.destination_port_id,
+        speed_knots=payload.speed_knots,
+        status=payload.status
+    )
+    
+    # Calculate initial route path if destination is provided
+    if payload.destination_port_id:
+        port = db.query(models.Port).filter(models.Port.id == payload.destination_port_id).first()
+        if port:
+            route_path = await get_osrm_route(payload.latitude, payload.longitude, port.latitude, port.longitude)
+            vessel.route_path_json = json.dumps(route_path)
+            
+    db.add(vessel)
+    db.commit()
+    db.refresh(vessel)
+    
+    # Mapped response object
+    vessel_data = {
+        "id": vessel.id,
+        "name": vessel.name,
+        "type": vessel.type,
+        "latitude": vessel.latitude,
+        "longitude": vessel.longitude,
+        "dest_lat": vessel.destination_port.latitude if vessel.destination_port else 0.0,
+        "dest_lon": vessel.destination_port.longitude if vessel.destination_port else 0.0,
+        "destination_port": vessel.destination_port.name if vessel.destination_port else "",
+        "speed_knots": vessel.speed_knots,
+        "status": vessel.status,
+        "ai_mitigation_brief": None,
+        "updated_at": vessel.updated_at.isoformat() if vessel.updated_at else None
+    }
+    
+    await stream_update(f"vessels/{vessel.id}", vessel_data)
+    return vessel_data
+
+@app.put("/api/vessels/{vessel_id}")
+async def update_vessel(vessel_id: str, payload: VesselUpdateRequest, db: Session = Depends(get_db)):
+    vessel = db.query(models.Vessel).filter(models.Vessel.id == vessel_id).first()
+    if not vessel:
+        raise HTTPException(status_code=404, detail="Vessel not found")
+        
+    if payload.name is not None:
+        vessel.name = payload.name
+    if payload.type is not None:
+        vessel.type = payload.type
+    if payload.latitude is not None:
+        vessel.latitude = payload.latitude
+    if payload.longitude is not None:
+        vessel.longitude = payload.longitude
+    if payload.speed_knots is not None:
+        vessel.speed_knots = payload.speed_knots
+    if payload.status is not None:
+        vessel.status = payload.status
+        
+    if payload.destination_port_id is not None:
+        vessel.destination_port_id = payload.destination_port_id
+        # Recalculate route if destination changed
+        port = db.query(models.Port).filter(models.Port.id == payload.destination_port_id).first()
+        if port:
+            lat = payload.latitude if payload.latitude is not None else vessel.latitude
+            lon = payload.longitude if payload.longitude is not None else vessel.longitude
+            route_path = await get_osrm_route(lat, lon, port.latitude, port.longitude)
+            vessel.route_path_json = json.dumps(route_path)
+            
+    db.commit()
+    db.refresh(vessel)
+    
+    vessel_data = {
+        "id": vessel.id,
+        "name": vessel.name,
+        "type": vessel.type,
+        "latitude": vessel.latitude,
+        "longitude": vessel.longitude,
+        "dest_lat": vessel.destination_port.latitude if vessel.destination_port else 0.0,
+        "dest_lon": vessel.destination_port.longitude if vessel.destination_port else 0.0,
+        "destination_port": vessel.destination_port.name if vessel.destination_port else "",
+        "speed_knots": vessel.speed_knots,
+        "status": vessel.status,
+        "ai_mitigation_brief": json.loads(vessel.ai_mitigation_brief) if vessel.ai_mitigation_brief else None,
+        "updated_at": vessel.updated_at.isoformat() if vessel.updated_at else None
+    }
+    
+    await stream_update(f"vessels/{vessel.id}", vessel_data)
+    return vessel_data
+
+@app.delete("/api/vessels/{vessel_id}")
+async def delete_vessel(vessel_id: str, db: Session = Depends(get_db)):
+    vessel = db.query(models.Vessel).filter(models.Vessel.id == vessel_id).first()
+    if not vessel:
+        raise HTTPException(status_code=404, detail="Vessel not found")
+        
+    db.delete(vessel)
+    db.commit()
+    
+    # Broadcast deletion by sending empty vessel state
+    await stream_update(f"vessels/{vessel_id}", None)
+    return {"message": "Vessel deleted successfully"}
 
 @app.get("/api/alerts")
 def get_alerts(db: Session = Depends(get_db)):

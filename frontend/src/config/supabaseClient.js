@@ -199,6 +199,41 @@ function createMockSupabaseClient() {
               };
               return { data: [clientHazard], error: null };
             }
+            
+            if (table === 'convoys') {
+              const r = Array.isArray(records) ? records[0] : records;
+              const res = await fetch(`${BACKEND_URL}/api/vessels`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  name: r.call_sign,
+                  type: r.cargo_type || 'CONTAINER',
+                  latitude: parseFloat(r.lat),
+                  longitude: parseFloat(r.lon),
+                  destination_port_id: r.destination_port_id || null,
+                  speed_knots: parseFloat(r.speed_knots || 15.0),
+                  status: r.status || 'SAILING'
+                })
+              });
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.detail || 'Failed to create vessel');
+              
+              const clientConvoy = {
+                id: data.id,
+                call_sign: data.name,
+                cargo_type: data.type,
+                lat: data.latitude,
+                lon: data.longitude,
+                dest_lat: data.dest_lat,
+                dest_lon: data.dest_lon,
+                destination_port: data.destination_port,
+                speed_knots: data.speed_knots,
+                status: data.status,
+                ai_directive: data.ai_mitigation_brief,
+                updated_at: data.updated_at
+              };
+              return { data: [clientConvoy], error: null };
+            }
             return { data: null, error: new Error("Insert not supported for this emulator table") };
           } catch (error) {
             return { data: null, error };
@@ -217,6 +252,46 @@ function createMockSupabaseClient() {
                   });
                   const data = await res.json();
                   if (!res.ok) throw new Error(data.detail || 'Reroute failed');
+                  return { data, error: null };
+                }
+
+                // General convoy field updates
+                if (table === 'convoys') {
+                  const payload = {};
+                  if (changes.call_sign !== undefined) payload.name = changes.call_sign;
+                  if (changes.cargo_type !== undefined) payload.type = changes.cargo_type;
+                  if (changes.lat !== undefined) payload.latitude = parseFloat(changes.lat);
+                  if (changes.lon !== undefined) payload.longitude = parseFloat(changes.lon);
+                  if (changes.speed_knots !== undefined) payload.speed_knots = parseFloat(changes.speed_knots);
+                  if (changes.status !== undefined) payload.status = changes.status;
+                  if (changes.destination_port_id !== undefined) payload.destination_port_id = changes.destination_port_id;
+
+                  const res = await fetch(`${BACKEND_URL}/api/vessels/${value}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.detail || 'Failed to update vessel');
+                  return { data, error: null };
+                }
+                return { data: null, error: null };
+              } catch (error) {
+                return { data: null, error };
+              }
+            }
+          };
+        },
+        delete: () => {
+          return {
+            eq: async (column, value) => {
+              try {
+                if (table === 'convoys') {
+                  const res = await fetch(`${BACKEND_URL}/api/vessels/${value}`, {
+                    method: 'DELETE'
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.detail || 'Failed to delete vessel');
                   return { data, error: null };
                 }
                 return { data: null, error: null };

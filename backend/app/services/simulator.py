@@ -13,48 +13,120 @@ from .firebase_service import stream_update
 logger = logging.getLogger(__name__)
 
 # Seed Data Configurations
+# Seed Data Configurations
 SEED_PORTS = [
     {"name": "Shanghai", "latitude": 31.2, "longitude": 121.5, "status": "NORMAL", "congestion_level": 0.15},
     {"name": "Singapore", "latitude": 1.3, "longitude": 103.8, "status": "NORMAL", "congestion_level": 0.22},
     {"name": "Rotterdam", "latitude": 51.9, "longitude": 4.1, "status": "NORMAL", "congestion_level": 0.18},
     {"name": "New York", "latitude": 40.7, "longitude": -74.0, "status": "NORMAL", "congestion_level": 0.12},
-    {"name": "Los Angeles", "latitude": 33.7, "longitude": -118.2, "status": "NORMAL", "congestion_level": 0.28}
+    {"name": "Los Angeles", "latitude": 33.7, "longitude": -118.2, "status": "NORMAL", "congestion_level": 0.28},
+    {"name": "Yokohama", "latitude": 35.4, "longitude": 139.7, "status": "NORMAL", "congestion_level": 0.14},
+    {"name": "Jebel Ali", "latitude": 25.0, "longitude": 55.1, "status": "NORMAL", "congestion_level": 0.20},
+    {"name": "Port Said", "latitude": 31.3, "longitude": 32.3, "status": "NORMAL", "congestion_level": 0.25},
+    {"name": "Panama City", "latitude": 8.9, "longitude": -79.5, "status": "NORMAL", "congestion_level": 0.35},
+    {"name": "Cape Town", "latitude": -33.9, "longitude": 18.4, "status": "NORMAL", "congestion_level": 0.10},
+    {"name": "Hamburg", "latitude": 53.5, "longitude": 9.9, "status": "NORMAL", "congestion_level": 0.16},
+    {"name": "Houston", "latitude": 29.7, "longitude": -95.3, "status": "NORMAL", "congestion_level": 0.21},
+    {"name": "Sydney", "latitude": -33.8, "longitude": 151.2, "status": "NORMAL", "congestion_level": 0.08},
+    {"name": "Mumbai", "latitude": 19.0, "longitude": 72.8, "status": "NORMAL", "congestion_level": 0.19},
+    {"name": "Santos", "latitude": -23.9, "longitude": -46.3, "status": "NORMAL", "congestion_level": 0.17},
+    {"name": "Gibraltar", "latitude": 36.1, "longitude": -5.3, "status": "NORMAL", "congestion_level": 0.05}
 ]
 
 SEED_LANES = [
     {
-        "name": "Shanghai-Singapore Lane (East Asia)",
-        "coordinates": [[31.2, 121.5], [25.0, 120.0], [20.0, 115.0], [10.0, 110.0], [1.3, 103.8]],
+        "name": "Shanghai-Yokohama-LA Lane (North Pacific Route)",
+        "coordinates": [[31.2, 121.5], [35.4, 139.7], [38.0, 160.0], [38.0, -160.0], [35.0, -135.0], [33.7, -118.2]],
         "status": "OPEN"
     },
     {
-        "name": "Singapore-Rotterdam Lane (Suez Passage)",
-        "coordinates": [[1.3, 103.8], [6.0, 95.0], [10.0, 80.0], [12.0, 60.0], [12.0, 45.0], [20.0, 38.0], [29.9, 32.5], [32.0, 30.0], [36.0, 15.0], [36.0, -5.0], [45.0, -8.0], [50.0, -2.0], [51.9, 4.1]],
+        "name": "LA-Panama-Houston-New York (Panama Canal Route)",
+        "coordinates": [[33.7, -118.2], [20.0, -110.0], [12.0, -90.0], [8.9, -79.5], [15.0, -78.0], [24.0, -88.0], [29.7, -95.3], [24.0, -82.0], [28.0, -79.0], [40.7, -74.0]],
         "status": "OPEN"
     },
     {
-        "name": "Rotterdam-New York Lane (North Atlantic)",
-        "coordinates": [[51.9, 4.1], [50.0, -10.0], [45.0, -30.0], [42.0, -50.0], [40.7, -74.0]],
+        "name": "New York-Rotterdam-Hamburg (North Atlantic Route)",
+        "coordinates": [[40.7, -74.0], [42.0, -50.0], [46.0, -30.0], [49.0, -10.0], [50.0, -2.0], [51.9, 4.1], [53.5, 9.9]],
         "status": "OPEN"
     },
     {
-        "name": "New York-Los Angeles Lane (Panama Transit)",
-        "coordinates": [[40.7, -74.0], [30.0, -75.0], [20.0, -75.0], [9.1, -79.9], [8.0, -85.0], [15.0, -100.0], [25.0, -110.0], [33.7, -118.2]],
+        "name": "Rotterdam-Gibraltar-Port Said (Suez Approach)",
+        "coordinates": [[51.9, 4.1], [50.0, -2.0], [48.0, -6.0], [36.1, -5.3], [37.0, 5.0], [35.0, 20.0], [31.3, 32.3]],
         "status": "OPEN"
     },
     {
-        "name": "Los Angeles-Shanghai Lane (Trans-Pacific)",
-        "coordinates": [[33.7, -118.2], [30.0, -140.0], [25.0, -170.0], [25.0, 160.0], [28.0, 140.0], [31.2, 121.5]],
+        "name": "Port Said-Jebel Ali-Singapore (Suez Passage)",
+        "coordinates": [[31.3, 32.3], [29.9, 32.5], [20.0, 38.0], [12.0, 43.0], [12.0, 50.0], [25.0, 55.1], [10.0, 65.0], [5.0, 80.0], [5.0, 95.0], [1.3, 103.8]],
+        "status": "OPEN"
+    },
+    {
+        "name": "Singapore-Shanghai (East Asia Corridor)",
+        "coordinates": [[1.3, 103.8], [10.0, 110.0], [18.0, 115.0], [22.0, 120.0], [31.2, 121.5]],
+        "status": "OPEN"
+    },
+    {
+        "name": "Singapore-Mumbai (Indian Ocean Express)",
+        "coordinates": [[1.3, 103.8], [5.0, 95.0], [8.0, 90.0], [5.0, 80.0], [12.0, 72.0], [19.0, 72.8]],
+        "status": "OPEN"
+    },
+    {
+        "name": "Mumbai-Cape Town (Indian Ocean Southern Route)",
+        "coordinates": [[19.0, 72.8], [0.0, 65.0], [-15.0, 50.0], [-29.8, 31.0], [-33.9, 18.4]],
+        "status": "OPEN"
+    },
+    {
+        "name": "Cape Town-Rotterdam (Atlantic Cape Route)",
+        "coordinates": [[-33.9, 18.4], [-20.0, 10.0], [0.0, -10.0], [15.0, -25.0], [38.0, -28.0], [36.1, -5.3], [48.0, -6.0], [51.9, 4.1]],
+        "status": "OPEN"
+    },
+    {
+        "name": "Santos-Cape Town (South Atlantic Route)",
+        "coordinates": [[-23.9, -46.3], [-28.0, -20.0], [-32.0, 0.0], [-33.9, 18.4]],
+        "status": "OPEN"
+    },
+    {
+        "name": "Santos-Panama (South America East to West Route)",
+        "coordinates": [[-23.9, -46.3], [-10.0, -35.0], [2.0, -45.0], [11.0, -60.0], [12.0, -70.0], [8.9, -79.5]],
+        "status": "OPEN"
+    },
+    {
+        "name": "Sydney-Singapore (Oceania Express)",
+        "coordinates": [[-33.8, 151.2], [-20.0, 148.0], [-10.0, 140.0], [-8.0, 125.0], [-5.0, 112.0], [1.3, 103.8]],
+        "status": "OPEN"
+    },
+    {
+        "name": "Sydney-LA (South Pacific Route)",
+        "coordinates": [[-33.8, 151.2], [-18.0, 178.0], [0.0, -165.0], [20.0, -157.0], [28.0, -140.0], [33.7, -118.2]],
         "status": "OPEN"
     }
 ]
 
 SEED_VESSELS = [
-    {"name": "Maersk Horizon", "type": "CONTAINER", "speed_knots": 18.5, "start_port": "Shanghai", "dest_port": "Singapore", "lane_name": "Shanghai-Singapore Lane (East Asia)"},
-    {"name": "Ever Given II", "type": "CONTAINER", "speed_knots": 15.0, "start_port": "Singapore", "dest_port": "Rotterdam", "lane_name": "Singapore-Rotterdam Lane (Suez Passage)"},
-    {"name": "Pacific Voyager", "type": "TANKER", "speed_knots": 13.5, "start_port": "Rotterdam", "dest_port": "New York", "lane_name": "Rotterdam-New York Lane (North Atlantic)"},
-    {"name": "Atlantic Spirit", "type": "CARGO", "speed_knots": 14.0, "start_port": "New York", "dest_port": "Los Angeles", "lane_name": "New York-Los Angeles Lane (Panama Transit)"},
-    {"name": "Cosco Glory", "type": "CONTAINER", "speed_knots": 17.0, "start_port": "Los Angeles", "dest_port": "Shanghai", "lane_name": "Los Angeles-Shanghai Lane (Trans-Pacific)"}
+    {"name": "Maersk Horizon", "type": "CONTAINER", "speed_knots": 18.5, "start_port": "Singapore", "dest_port": "Shanghai", "lane_name": "Singapore-Shanghai (East Asia Corridor)"},
+    {"name": "Ever Given II", "type": "CONTAINER", "speed_knots": 15.0, "start_port": "Singapore", "dest_port": "Rotterdam", "lane_name": "Port Said-Jebel Ali-Singapore (Suez Passage)"},
+    {"name": "Pacific Voyager", "type": "TANKER", "speed_knots": 13.5, "start_port": "Rotterdam", "dest_port": "New York", "lane_name": "New York-Rotterdam-Hamburg (North Atlantic Route)"},
+    {"name": "Atlantic Spirit", "type": "CARGO", "speed_knots": 14.0, "start_port": "New York", "dest_port": "Los Angeles", "lane_name": "LA-Panama-Houston-New York (Panama Canal Route)"},
+    {"name": "Cosco Glory", "type": "CONTAINER", "speed_knots": 17.0, "start_port": "Los Angeles", "dest_port": "Shanghai", "lane_name": "Shanghai-Yokohama-LA Lane (North Pacific Route)"},
+    {"name": "MSC Amelia", "type": "CONTAINER", "speed_knots": 21.0, "start_port": "Shanghai", "dest_port": "Los Angeles", "lane_name": "Shanghai-Yokohama-LA Lane (North Pacific Route)"},
+    {"name": "Hyundai Integrity", "type": "LNG_CARRIER", "speed_knots": 19.5, "start_port": "Port Said", "dest_port": "Jebel Ali", "lane_name": "Port Said-Jebel Ali-Singapore (Suez Passage)"},
+    {"name": "CMA CGM Antoine", "type": "CONTAINER", "speed_knots": 16.5, "start_port": "Rotterdam", "dest_port": "Hamburg", "lane_name": "New York-Rotterdam-Hamburg (North Atlantic Route)"},
+    {"name": "One Triton", "type": "CONTAINER", "speed_knots": 18.0, "start_port": "Yokohama", "dest_port": "Los Angeles", "lane_name": "Shanghai-Yokohama-LA Lane (North Pacific Route)"},
+    {"name": "Zim Kingston", "type": "CARGO", "speed_knots": 14.5, "start_port": "New York", "dest_port": "Houston", "lane_name": "LA-Panama-Houston-New York (Panama Canal Route)"},
+    {"name": "Valemax Brasil", "type": "CARGO", "speed_knots": 12.0, "start_port": "Santos", "dest_port": "Rotterdam", "lane_name": "Cape Town-Rotterdam (Atlantic Cape Route)"},
+    {"name": "HMM Algeciras", "type": "CONTAINER", "speed_knots": 22.0, "start_port": "Singapore", "dest_port": "Shanghai", "lane_name": "Singapore-Shanghai (East Asia Corridor)"},
+    {"name": "Nordic Hercules", "type": "TANKER", "speed_knots": 13.0, "start_port": "Rotterdam", "dest_port": "Gibraltar", "lane_name": "Rotterdam-Gibraltar-Port Said (Suez Approach)"},
+    {"name": "Stolt Gemini", "type": "TANKER", "speed_knots": 14.0, "start_port": "Singapore", "dest_port": "Mumbai", "lane_name": "Singapore-Mumbai (Indian Ocean Express)"},
+    {"name": "Suezmax Monarch", "type": "TANKER", "speed_knots": 15.5, "start_port": "Port Said", "dest_port": "Jebel Ali", "lane_name": "Port Said-Jebel Ali-Singapore (Suez Passage)"},
+    {"name": "USS Mercy", "type": "CARGO", "speed_knots": 17.5, "start_port": "Sydney", "dest_port": "Singapore", "lane_name": "Sydney-Singapore (Oceania Express)"},
+    {"name": "Global Hope", "type": "CARGO", "speed_knots": 13.0, "start_port": "Singapore", "dest_port": "Mumbai", "lane_name": "Singapore-Mumbai (Indian Ocean Express)"},
+    {"name": "Alaskan Frontier", "type": "TANKER", "speed_knots": 16.0, "start_port": "Los Angeles", "dest_port": "Yokohama", "lane_name": "Shanghai-Yokohama-LA Lane (North Pacific Route)"},
+    {"name": "Pacific Explorer", "type": "CARGO", "speed_knots": 15.0, "start_port": "Sydney", "dest_port": "Los Angeles", "lane_name": "Sydney-LA (South Pacific Route)"},
+    {"name": "Rotterdam Express", "type": "CONTAINER", "speed_knots": 19.0, "start_port": "New York", "dest_port": "Rotterdam", "lane_name": "New York-Rotterdam-Hamburg (North Atlantic Route)"},
+    {"name": "Santos Monarch", "type": "CARGO", "speed_knots": 14.0, "start_port": "Santos", "dest_port": "Cape Town", "lane_name": "Santos-Cape Town (South Atlantic Route)"},
+    {"name": "Shanghai Pioneer", "type": "LNG_CARRIER", "speed_knots": 20.0, "start_port": "Shanghai", "dest_port": "Yokohama", "lane_name": "Shanghai-Yokohama-LA Lane (North Pacific Route)"},
+    {"name": "Arabian Star", "type": "LNG_CARRIER", "speed_knots": 18.0, "start_port": "Jebel Ali", "dest_port": "Mumbai", "lane_name": "Port Said-Jebel Ali-Singapore (Suez Passage)"},
+    {"name": "Timor Sentinel", "type": "CARGO", "speed_knots": 24.0, "start_port": "Sydney", "dest_port": "Singapore", "lane_name": "Sydney-Singapore (Oceania Express)"},
+    {"name": "Cape Hope Voyager", "type": "CARGO", "speed_knots": 13.5, "start_port": "Mumbai", "dest_port": "Cape Town", "lane_name": "Mumbai-Cape Town (Indian Ocean Southern Route)"}
 ]
 
 def seed_database(db: Session):
