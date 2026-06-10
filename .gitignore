@@ -44,3 +44,7 @@ backend/venv/
 logistics.db
 backend/logistics.db
 
+# Python bytecode/caches
+__pycache__/
+*.pyc
+
