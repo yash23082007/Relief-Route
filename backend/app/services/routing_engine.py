@@ -2,9 +2,12 @@ import math
 import json
 import httpx
 import logging
+import os
 from .weather_service import get_weather_risk
 
 logger = logging.getLogger(__name__)
+
+TOMTOM_API_KEY = os.getenv("TOMTOM_API_KEY")
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
@@ -19,6 +22,31 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     a = math.sin(d_phi / 2.0)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lon / 2.0)**2
     c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
     return R * c
+
+async def get_tomtom_traffic_risk(lat: float, lon: float) -> float:
+    """
+    Queries TomTom Traffic Flow Segment API to get traffic flow delay index (0.0 to 1.0).
+    """
+    if not TOMTOM_API_KEY:
+        return 0.2  # default fallback
+        
+    url = f"https://api.tomtom.com/traffic/services/4/flowSegmentData/relative-compact/10/json?key={TOMTOM_API_KEY}&point={lat},{lon}"
+    try:
+        async with httpx.AsyncClient(timeout=4.0) as client:
+            response = await client.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                flow = data.get("flowSegmentData", {})
+                current_speed = flow.get("currentSpeed", 1.0)
+                free_flow_speed = flow.get("freeFlowSpeed", 1.0)
+                
+                # Delay factor ranges from 0.0 (smooth) to 1.0 (blocked/congested)
+                delay_factor = max(0.0, 1.0 - (current_speed / free_flow_speed))
+                return round(delay_factor, 2)
+    except Exception as e:
+        logger.warning(f"Error querying TomTom Traffic Segment flow segment data: {e}")
+        
+    return 0.2  # fallback
 
 async def get_osrm_route(start_lat: float, start_lon: float, end_lat: float, end_lon: float) -> list:
     """
@@ -49,13 +77,13 @@ async def get_osrm_route(start_lat: float, start_lon: float, end_lat: float, end
         path.append([lat, lon])
     return path
 
-async def calculate_lane_penalty(coordinates: list, hazards: list, tom_tom_flow: float = 0.2) -> float:
+async def calculate_lane_penalty(coordinates: list, hazards: list) -> float:
     """
     Calculates a weighted disruption penalty (0.0 to 100.0) along a shipping lane.
     Telemetry factors:
     1. Weather: Sample weather along lane coordinates.
     2. Hazards: Check proximity to planetary hazards (NASA EONET, USGS).
-    3. Traffic flow: TomTom traffic delay index.
+    3. Traffic flow: Live TomTom traffic flow query.
     """
     if not coordinates:
         return 0.0
@@ -90,7 +118,12 @@ async def calculate_lane_penalty(coordinates: list, hazards: list, tom_tom_flow:
                 hazard_penalty = max(hazard_penalty, proximity_score)
 
     # 3. Traffic Flow Penalty (scaled TomTom flow delay)
-    # tom_tom_flow is 0.0 (smooth) to 1.0 (blocked)
+    # We sample traffic near the midpoint of the lane coordinates
+    tom_tom_flow = 0.2
+    if coordinates:
+        mid_lat, mid_lon = coordinates[len(coordinates) // 2]
+        tom_tom_flow = await get_tomtom_traffic_risk(mid_lat, mid_lon)
+        
     traffic_penalty = tom_tom_flow * 20.0
 
     # Weighted Sum Formula:
