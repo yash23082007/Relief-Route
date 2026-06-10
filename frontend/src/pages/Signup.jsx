@@ -8,6 +8,7 @@ const Signup = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState('operator'); // Role assignment state
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -25,7 +26,7 @@ const Signup = () => {
     setLoading(true);
 
     try {
-      const { error: signupError } = await signup(email, password);
+      const { error: signupError } = await signup(email, password, role);
       if (signupError) {
         setError(signupError.message || 'Registration failed');
       } else {
@@ -115,6 +116,19 @@ const Signup = () => {
               required
               className="w-full px-4 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500/80 rounded-xl text-sm text-slate-100 placeholder-slate-650 focus:outline-none transition shadow-inner"
             />
+          </div>
+
+          {/* Role selection dropdown */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider block">Security Clearance / Role</label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full px-4 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500/80 rounded-xl text-sm text-slate-100 placeholder-slate-650 focus:outline-none transition cursor-pointer"
+            >
+              <option value="operator">Field Monitor Operator (Read-Only)</option>
+              <option value="admin">Command Response Administrator (Full Access)</option>
+            </select>
           </div>
 
           {/* Submit button */}

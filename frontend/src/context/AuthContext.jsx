@@ -41,9 +41,15 @@ export const AuthProvider = ({ children }) => {
     return { data, error };
   };
 
-  const signup = async (email, password) => {
+  const signup = async (email, password, role = 'operator') => {
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { role }
+      }
+    });
     if (!error && data) {
       setSession(data);
       setUser(data.user);

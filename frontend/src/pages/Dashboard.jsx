@@ -9,10 +9,17 @@ import { LogOut, User, Navigation, Shield, Compass } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, logout, loading } = useAuth();
-  const { latestAlert, setLatestAlert } = useLiveState();
+  const { convoys, incidents, latestAlert, setLatestAlert } = useLiveState();
   const navigate = useNavigate();
   
   const [selectedConvoy, setSelectedConvoy] = useState(null);
+  const [time, setTime] = useState(new Date());
+
+  // Live UTC Clock Interval
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   // Authenticated route protection
   useEffect(() => {
@@ -37,10 +44,12 @@ const Dashboard = () => {
     navigate('/login');
   };
 
+  const reroutedCount = convoys.filter(c => c.status === 'REROUTED').length;
+
   return (
     <div className="h-screen w-screen flex flex-col bg-[#060813] text-slate-100 overflow-hidden font-sans">
       
-      {/* Top Banner Navigation */}
+      {/* Top Banner Navigation / CommandBar */}
       <header className="h-14 bg-[#0a0f1d] border-b border-slate-900 px-6 flex items-center justify-between select-none">
         
         {/* Left: Branding */}
@@ -54,22 +63,42 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Center: System Alerts Status */}
-        <div className="hidden md:flex items-center space-x-4">
-          <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800 rounded-lg px-3 py-1">
-            <Shield className="h-3.5 w-3.5 text-indigo-400" />
-            <span className="text-[10px] font-semibold font-mono text-slate-300">DISASTER LOGISTICS OVERWATCH ENABLED</span>
+        {/* Center: Live System Status Telemetry */}
+        <div className="hidden lg:flex items-center space-x-8">
+          <div className="flex flex-col items-center">
+            <span className="text-[8px] font-bold font-mono text-slate-500 uppercase tracking-wider">FLEETS ACTIVE</span>
+            <span className="text-xs font-bold font-mono text-emerald-450">{convoys.length}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-[8px] font-bold font-mono text-slate-500 uppercase tracking-wider">HAZARD ZONES</span>
+            <span className="text-xs font-bold font-mono text-amber-500">{incidents.length}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-[8px] font-bold font-mono text-slate-500 uppercase tracking-wider">REROUTED FLEETS</span>
+            <span className={`text-xs font-bold font-mono ${reroutedCount > 0 ? 'text-red-500 animate-pulse' : 'text-slate-400'}`}>{reroutedCount}</span>
           </div>
         </div>
 
-        {/* Right: User telemetry and Logout */}
-        <div className="flex items-center space-x-4">
+        {/* Right: Live UTC Clock, User info & Logout */}
+        <div className="flex items-center space-x-5">
+          {/* Live UTC Clock */}
+          <div className="hidden sm:block text-right">
+            <span className="text-[8px] font-bold font-mono text-slate-500 uppercase tracking-wider block">UTC CLOCK</span>
+            <span className="text-xs font-bold font-mono text-indigo-400">
+              {time.toUTCString().slice(17, 25)} UTC
+            </span>
+          </div>
+
           <div className="flex items-center space-x-2 text-right">
-            <div className="hidden sm:flex flex-col">
+            <div className="hidden md:flex flex-col">
               <span className="text-[10px] font-bold font-mono text-slate-300">{user.email}</span>
-              <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest font-mono">Response Operator</span>
+              <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest font-mono">
+                {user.role === 'admin' ? 'Response Administrator' : 'Field Monitor Operator'}
+              </span>
             </div>
-            <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400">
+            <div className={`w-8 h-8 rounded-lg border flex items-center justify-center ${
+              user.role === 'admin' ? 'border-emerald-500/20 bg-emerald-950/20 text-emerald-400' : 'border-slate-800 bg-slate-900 text-slate-450'
+            }`}>
               <User className="h-4.5 w-4.5" />
             </div>
           </div>

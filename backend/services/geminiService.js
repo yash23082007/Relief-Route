@@ -34,6 +34,12 @@ async function triggerRerouting(convoy, hazard) {
       status: 'REROUTED',
       ai_directive: simulatedAdvice
     });
+    db.insertLog({
+      convoy_id: convoy.id,
+      convoy_call_sign: convoy.call_sign,
+      event_type: 'AI_REROUTED',
+      ai_summary: `AI Detour vector calculated: ${simulatedAdvice.recommended_detour} (Delay: +${simulatedAdvice.estimated_delay_minutes}m). Threat details: proximity collision with ${hazard.title}.`
+    });
     return simulatedAdvice;
   }
 
@@ -103,6 +109,12 @@ async function triggerRerouting(convoy, hazard) {
       status: 'REROUTED',
       ai_directive: aiDirective
     });
+    db.insertLog({
+      convoy_id: convoy.id,
+      convoy_call_sign: convoy.call_sign,
+      event_type: 'AI_REROUTED',
+      ai_summary: `Gemini AI Detour generated: ${aiDirective.recommended_detour} (Delay: +${aiDirective.estimated_delay_minutes}m). ${aiDirective.tactical_summary}`
+    });
 
     return aiDirective;
   } catch (error) {
@@ -112,6 +124,12 @@ async function triggerRerouting(convoy, hazard) {
     db.updateConvoy(convoy.id, {
       status: 'REROUTED',
       ai_directive: simulatedAdvice
+    });
+    db.insertLog({
+      convoy_id: convoy.id,
+      convoy_call_sign: convoy.call_sign,
+      event_type: 'AI_REROUTED',
+      ai_summary: `AI Detour vector calculated (API fallback): ${simulatedAdvice.recommended_detour} (Delay: +${simulatedAdvice.estimated_delay_minutes}m). Threat details: proximity collision with ${hazard.title}.`
     });
     return simulatedAdvice;
   }

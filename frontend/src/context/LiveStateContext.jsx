@@ -6,6 +6,7 @@ const LiveStateContext = createContext();
 export const LiveStateProvider = ({ children }) => {
   const [convoys, setConvoys] = useState([]);
   const [incidents, setIncidents] = useState([]);
+  const [logs, setLogs] = useState([]);
   const [latestAlert, setLatestAlert] = useState(null);
   const [isConnecting, setIsConnecting] = useState(true);
 
@@ -17,6 +18,13 @@ export const LiveStateProvider = ({ children }) => {
 
       const { data: incidentsData } = await supabase.from('incidents').select('*');
       if (incidentsData) setIncidents(incidentsData);
+      
+      const { data: logsData } = await supabase.from('mission_logs').select('*');
+      if (logsData) {
+        // Sort by created_at descending (newest first)
+        const sorted = [...logsData].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        setLogs(sorted);
+      }
     } catch (err) {
       console.error("Error fetching initial telemetry:", err);
     } finally {
@@ -73,9 +81,22 @@ export const LiveStateProvider = ({ children }) => {
       })
       .subscribe();
 
+    // Subscribe to mission_logs changes
+    const logsChannel = supabase
+      .channel('realtime-logs')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mission_logs' }, (payload) => {
+        console.log('📬 Logs Database Update Received:', payload);
+        setLogs((prev) => {
+          if (prev.some(l => l.id === payload.new.id)) return prev;
+          return [payload.new, ...prev].slice(0, 50); // limit to 50 logs in history
+        });
+      })
+      .subscribe();
+
     return () => {
       convoysChannel.unsubscribe();
       incidentsChannel.unsubscribe();
+      logsChannel.unsubscribe();
     };
   }, []);
 
@@ -92,7 +113,9 @@ export const LiveStateProvider = ({ children }) => {
   const clearSimulation = async () => {
     try {
       await fetch('http://localhost:5000/api/hazards/clear', { method: 'POST' });
+      await fetch('http://localhost:5000/api/mission_logs/clear', { method: 'POST' });
       setIncidents([]);
+      setLogs([]);
       // Reload convoys since backend resets their status and AI directives
       const { data: convoysData } = await supabase.from('convoys').select('*');
       if (convoysData) setConvoys(convoysData);
@@ -128,6 +151,7 @@ export const LiveStateProvider = ({ children }) => {
   const value = {
     convoys,
     incidents,
+    logs,
     latestAlert,
     setLatestAlert,
     moveConvoy,

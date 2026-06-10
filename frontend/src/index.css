@@ -1,6 +1,27 @@
 @import "tailwindcss";
 @import 'leaflet/dist/leaflet.css';
 
+:root {
+  --bg-base: #030712;         /* Near-black base */
+  --bg-surface: #0f172a;      /* Card/panel surfaces */
+  --bg-elevated: #1e293b;     /* Hover states, elevated panels */
+
+  --border-subtle: #1e293b;
+  --border-default: #334155;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+
+  --accent-critical: #ef4444;  /* REROUTED / danger */
+  --accent-warning: #f59e0b;   /* WARNING status */
+  --accent-success: #22c55e;   /* ACTIVE / safe */
+  --accent-blue: #3b82f6;      /* Interactive elements */
+
+  --glow-red: 0 0 20px rgba(239, 68, 68, 0.4);
+  --glow-amber: 0 0 20px rgba(245, 158, 11, 0.3);
+}
+
 html, body, #root {
   margin: 0;
   padding: 0;

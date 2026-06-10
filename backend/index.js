@@ -10,6 +10,7 @@ const convoyController = require('./controllers/convoyController');
 const hazardController = require('./controllers/hazardController');
 const authController = require('./controllers/authController');
 const { fetchAndIngestHazards } = require('./services/nasaService');
+const { startSimulator, stopSimulator } = require('./services/convoySimulator');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -38,6 +39,32 @@ app.post('/api/hazards', hazardController.createHazard);
 app.post('/api/hazards/upsert', hazardController.upsertHazard);
 app.post('/api/hazards/ingest', hazardController.triggerIngest);
 app.post('/api/hazards/clear', hazardController.clearHazards);
+
+// Mission Logs Routes
+app.get('/api/logs', (req, res) => {
+  res.json(db.getLogs());
+});
+app.get('/api/mission_logs', (req, res) => {
+  res.json(db.getLogs());
+});
+app.post('/api/logs/clear', (req, res) => {
+  db.clearLogs();
+  res.json({ success: true });
+});
+app.post('/api/mission_logs/clear', (req, res) => {
+  db.clearLogs();
+  res.json({ success: true });
+});
+
+// Simulator Control Routes
+app.post('/api/simulator/start', (req, res) => {
+  startSimulator();
+  res.json({ success: true, running: true });
+});
+app.post('/api/simulator/stop', (req, res) => {
+  stopSimulator();
+  res.json({ success: true, running: false });
+});
 
 // Mock Auth Routes
 app.post('/api/auth/signup', authController.signup);
@@ -91,6 +118,9 @@ cron.schedule('*/5 * * * *', async () => {
 // Bootstrap Database & Ingest NASA Hazards on startup
 server.listen(PORT, async () => {
   console.log(`🚀 ReliefRoute Backend Server running on http://localhost:${PORT}`);
+  
+  // Start simulation engine immediately
+  startSimulator();
   
   // Trigger initial ingestion after a short delay to allow server initialization
   setTimeout(async () => {

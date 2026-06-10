@@ -44,7 +44,8 @@ const defaultSchema = {
     }
   ],
   hazards: [],
-  users: []
+  users: [],
+  mission_logs: []
 };
 
 // Ensure database file exists
@@ -55,7 +56,15 @@ if (!fs.existsSync(DB_FILE)) {
 function readDB() {
   try {
     const data = fs.readFileSync(DB_FILE, 'utf8');
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    
+    // Schema verification and auto-migration
+    if (!parsed.convoys) parsed.convoys = [];
+    if (!parsed.hazards) parsed.hazards = [];
+    if (!parsed.users) parsed.users = [];
+    if (!parsed.mission_logs) parsed.mission_logs = [];
+    
+    return parsed;
   } catch (err) {
     console.error("Error reading database file, resetting to default schema", err);
     return defaultSchema;
@@ -211,10 +220,39 @@ module.exports = {
       id: `u-${Date.now()}`,
       email: user.email,
       password: user.password, // simple mock auth plaintext (not for production)
+      role: user.role || 'operator', // role assignment (operator or admin)
       created_at: new Date().toISOString()
     };
     db.users.push(newUser);
     writeDB(db);
     return newUser;
+  },
+
+  // Mission Logs CRUD
+  getLogs: () => {
+    return readDB().mission_logs || [];
+  },
+  
+  insertLog: (log) => {
+    const db = readDB();
+    const newLog = {
+      id: log.id || `l-${Date.now()}`,
+      convoy_id: log.convoy_id || null,
+      convoy_call_sign: log.convoy_call_sign || "Unknown Fleet",
+      event_type: log.event_type || "STATUS_CHANGE", // 'INTERSECTION_DETECTED', 'AI_REROUTED', 'WEATHER_ALERT'
+      ai_summary: log.ai_summary || "",
+      created_at: new Date().toISOString()
+    };
+    db.mission_logs.push(newLog);
+    writeDB(db);
+    notifyChange('INSERT', 'mission_logs', newLog);
+    return newLog;
+  },
+
+  clearLogs: () => {
+    const db = readDB();
+    db.mission_logs = [];
+    writeDB(db);
+    return true;
   }
 };

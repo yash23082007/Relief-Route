@@ -27,12 +27,13 @@ function createMockSupabaseClient() {
 
   return {
     auth: {
-      signUp: async ({ email, password }) => {
+      signUp: async ({ email, password, options }) => {
         try {
+          const role = options?.data?.role || 'operator';
           const res = await fetch(`${BACKEND_URL}/api/auth/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ email, password, role })
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || 'Signup failed');
