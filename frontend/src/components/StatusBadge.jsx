@@ -3,30 +3,55 @@ import React from 'react';
 const STATUS_CONFIG = {
   ACTIVE: {
     label: 'ACTIVE',
-    color: '#10b981', // Emerald-500
-    glow: '0 0 10px rgba(16, 185, 129, 0.4)',
-    bg: 'rgba(16, 185, 129, 0.1)'
+    color: 'var(--status-active)',
+    glow: 'var(--glow-green)',
+    bg: 'rgba(34, 197, 94, 0.1)'
+  },
+  SAILING: {
+    label: 'SAILING',
+    color: 'var(--status-active)',
+    glow: 'var(--glow-green)',
+    bg: 'rgba(34, 197, 94, 0.1)'
   },
   WARNING: {
     label: 'WARNING',
-    color: '#f59e0b', // Amber-500
-    glow: '0 0 10px rgba(245, 158, 11, 0.4)',
+    color: 'var(--status-warning)',
+    glow: 'var(--glow-amber)',
+    bg: 'rgba(245, 158, 11, 0.1)'
+  },
+  ARRIVING: {
+    label: 'ARRIVING',
+    color: 'var(--status-warning)',
+    glow: 'var(--glow-amber)',
     bg: 'rgba(245, 158, 11, 0.1)'
   },
   REROUTED: {
     label: 'REROUTED',
-    color: '#ef4444', // Red-500
-    glow: '0 0 10px rgba(239, 68, 68, 0.4)',
+    color: 'var(--status-critical)',
+    glow: 'var(--glow-red)',
     bg: 'rgba(239, 68, 68, 0.1)'
+  },
+  MOORED: {
+    label: 'MOORED',
+    color: '#64748b',
+    glow: 'none',
+    bg: 'rgba(100, 116, 139, 0.15)'
+  },
+  STANDBY: {
+    label: 'STANDBY',
+    color: '#64748b',
+    glow: 'none',
+    bg: 'rgba(100, 116, 139, 0.15)'
   }
 };
 
 export const StatusBadge = ({ status }) => {
-  const config = STATUS_CONFIG[status] || {
-    label: status || 'UNKNOWN',
-    color: '#94a3b8',
+  const normalizedStatus = (status || 'UNKNOWN').toUpperCase();
+  const config = STATUS_CONFIG[normalizedStatus] || {
+    label: normalizedStatus,
+    color: 'var(--text-muted)',
     glow: 'none',
-    bg: 'rgba(148, 163, 184, 0.1)'
+    bg: 'rgba(71, 85, 105, 0.1)'
   };
 
   return (

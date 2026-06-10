@@ -2,24 +2,33 @@
 @import 'leaflet/dist/leaflet.css';
 
 :root {
-  --bg-base: #030712;         /* Near-black base */
-  --bg-surface: #0f172a;      /* Card/panel surfaces */
-  --bg-elevated: #1e293b;     /* Hover states, elevated panels */
+  /* Backgrounds */
+  --bg-base:     #030712;   /* Canvas — deepest black */
+  --bg-surface:  #0f172a;   /* Panels, cards, sidebars */
+  --bg-elevated: #1e293b;   /* Hover states, modals */
 
-  --border-subtle: #1e293b;
+  /* Borders */
+  --border-subtle:  #1e293b;
   --border-default: #334155;
 
-  --text-primary: #f8fafc;
+  /* Typography */
+  --text-primary:   #f8fafc;
   --text-secondary: #94a3b8;
-  --text-muted: #475569;
+  --text-muted:     #475569;
 
-  --accent-critical: #ef4444;  /* REROUTED / danger */
-  --accent-warning: #f59e0b;   /* WARNING status */
-  --accent-success: #22c55e;   /* ACTIVE / safe */
-  --accent-blue: #3b82f6;      /* Interactive elements */
+  /* Status Colors (Tricolor System) */
+  --status-active:   #22c55e;   /* Green  — safe, moving */
+  --status-warning:  #f59e0b;   /* Amber  — weather alert or proximity warning */
+  --status-critical: #ef4444;   /* Red    — AI rerouting triggered */
 
-  --glow-red: 0 0 20px rgba(239, 68, 68, 0.4);
-  --glow-amber: 0 0 20px rgba(245, 158, 11, 0.3);
+  /* Glow Effects */
+  --glow-green:  0 0 20px rgba(34, 197, 94, 0.3);
+  --glow-amber:  0 0 20px rgba(245, 158, 11, 0.3);
+  --glow-red:    0 0 20px rgba(239, 68, 68, 0.4);
+
+  /* Interactive */
+  --accent-blue: #3b82f6;
+  --accent-blue-hover: #2563eb;
 }
 
 html, body, #root {

@@ -3,14 +3,15 @@ import { useLiveState } from '../context/LiveStateContext';
 import { useAuth } from '../context/AuthContext';
 import StatusBadge from './StatusBadge';
 import MissionLog from './MissionLog';
-import { Truck, Flame, ShieldAlert, RotateCcw, RefreshCw, Navigation, Play, Trash2, Clock, ShieldCheck, Lock } from 'lucide-react';
+import { Ship, Flame, ShieldAlert, RotateCcw, RefreshCw, Navigation, Play, Trash2, Clock, ShieldCheck, Lock, Anchor } from 'lucide-react';
 
 const LiveSidebar = ({ selectedConvoy, onSelectConvoy }) => {
   const { 
     convoys, 
     incidents, 
     logs,
-    moveConvoy, 
+    ports,
+    lanes,
     triggerManualIncident, 
     clearSimulation, 
     resetConvoys, 
@@ -20,12 +21,11 @@ const LiveSidebar = ({ selectedConvoy, onSelectConvoy }) => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
 
-  const [activeTab, setActiveTab] = useState('fleets'); // 'fleets' | 'hazards' | 'timeline' | 'controls'
+  const [activeTab, setActiveTab] = useState('fleets'); // 'fleets' | 'ports' | 'timeline' | 'controls'
   const [ingesting, setIngesting] = useState(false);
-  const [drivingIntervals, setDrivingIntervals] = useState({}); // tracking drive sim loops
 
   // Stat counts
-  const warningCount = convoys.filter(c => c.status === 'WARNING').length;
+  const warningCount = convoys.filter(c => c.status === 'ARRIVING' || c.status === 'WARNING').length;
   const reroutedCount = convoys.filter(c => c.status === 'REROUTED').length;
 
   const handleRunIngestion = async () => {
@@ -35,66 +35,24 @@ const LiveSidebar = ({ selectedConvoy, onSelectConvoy }) => {
     setIngesting(false);
   };
 
-  // Simulate step-by-step movement of a convoy towards its destination
-  const toggleDriveSimulation = (convoy) => {
+  // Quick simulation helper: spawn a storm hazard directly in front of the vessel
+  const spawnTestHazardNearConvoy = (convoy, type = 'storm') => {
     if (!isAdmin) return;
-    const id = convoy.id;
-    if (drivingIntervals[id]) {
-      // Pause
-      clearInterval(drivingIntervals[id]);
-      const newIntervals = { ...drivingIntervals };
-      delete newIntervals[id];
-      setDrivingIntervals(newIntervals);
-    } else {
-      // Start moving step by step (10 steps from current position to destination)
-      let step = 0;
-      const totalSteps = 25;
-      const startLat = convoy.lat;
-      const startLon = convoy.lon;
-      const latDiff = (convoy.dest_lat - startLat) / totalSteps;
-      const lonDiff = (convoy.dest_lon - startLon) / totalSteps;
-
-      const intervalId = setInterval(() => {
-        step++;
-        if (step > totalSteps) {
-          clearInterval(intervalId);
-          const newIntervals = { ...drivingIntervals };
-          delete newIntervals[id];
-          setDrivingIntervals(newIntervals);
-          // snap to final dest
-          moveConvoy(id, convoy.dest_lat, convoy.dest_lon);
-          return;
-        }
-        
-        const currentLat = startLat + (latDiff * step);
-        const currentLon = startLon + (lonDiff * step);
-        moveConvoy(id, currentLat, currentLon);
-      }, 1000); // update every 1s
-
-      setDrivingIntervals({
-        ...drivingIntervals,
-        [id]: intervalId
-      });
-    }
-  };
-
-  // Quick simulation helper: spawn a fire right in front of Convoy Alpha
-  const spawnTestHazardNearConvoy = (convoy, type = 'wildfires') => {
-    if (!isAdmin) return;
-    // Spawn 8km in the direction of its destination so it triggers collision check
-    const latOffset = (convoy.dest_lat - convoy.lat) * 0.25;
-    const lonOffset = (convoy.dest_lon - convoy.lon) * 0.25;
+    
+    // Spawn hazard slightly shifted from vessel coordinates to intersect the lane
+    const latOffset = (convoy.dest_lat - convoy.lat) * 0.15;
+    const lonOffset = (convoy.dest_lon - convoy.lon) * 0.15;
     
     const targetLat = convoy.lat + latOffset;
     const targetLon = convoy.lon + lonOffset;
     
     const mockHazard = {
-      id: `sim-hazard-${Date.now()}`,
-      title: type === 'wildfires' ? `Simulation Wildfire [${convoy.call_sign}]` : `Simulation Flash Flood [${convoy.call_sign}]`,
+      title: type === 'storm' ? `Severe Cyclone Cell [${convoy.call_sign}]` : `USGS Fault Slip [${convoy.call_sign}]`,
       hazard_type: type,
       lat: parseFloat(targetLat.toFixed(5)),
       lon: parseFloat(targetLon.toFixed(5)),
-      radius_km: type === 'wildfires' ? 12.0 : 20.0,
+      radius_km: type === 'storm' ? 95.0 : 120.0,
+      severity: 'HIGH',
       reported_at: new Date().toISOString()
     };
     
@@ -102,329 +60,241 @@ const LiveSidebar = ({ selectedConvoy, onSelectConvoy }) => {
   };
 
   return (
-    <div className="w-full lg:w-96 bg-[#0f172a] border border-slate-800 rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden select-none">
+    <div 
+      className="w-full lg:w-80 flex flex-col h-full overflow-hidden select-none border-r border-[var(--border-default)]"
+      style={{
+        background: 'var(--bg-surface)',
+        fontFamily: 'monospace'
+      }}
+    >
       
-      {/* Dashboard Brand Header */}
-      <div className="p-4 border-b border-slate-800 bg-[#0a0f1d] flex items-center justify-between">
-        <div className="flex items-center space-x-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <Navigation className="h-4.5 w-4.5 text-white" />
+      {/* Brand Header */}
+      <div className="p-4 border-b border-[var(--border-default)] flex items-center justify-between" style={{ background: '#0a0f1d' }}>
+        <div className="flex items-center space-x-2">
+          <div className="w-7 h-7 rounded bg-[#3b82f6] flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <Ship className="h-4 w-4 text-white" />
           </div>
           <div>
-            <h1 className="font-bold font-mono tracking-wide text-sm text-slate-100">RELIEFROUTE</h1>
-            <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wider">Tactical Control Hub</p>
+            <h1 className="font-bold text-xs tracking-wider text-[var(--text-primary)]">RELIEFROUTE LOGISTICS</h1>
+            <p className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">TACTICAL TOWER</p>
           </div>
         </div>
         
-        {/* Connection status dot */}
-        <div className="flex items-center space-x-1.5 bg-slate-900 border border-slate-800 rounded-full px-2 py-0.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span className="text-[9px] font-semibold font-mono text-emerald-400">WS SYNCED</span>
+        {/* Connection status */}
+        <div className="flex items-center space-x-1.5 bg-[#030712] border border-[#334155] rounded-full px-2 py-0.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#22c55e] animate-pulse"></span>
+          <span className="text-[8px] font-bold text-[#22c55e] tracking-tight">SSE STREAM</span>
         </div>
       </div>
 
-      {/* Role Indicator Banner */}
-      <div className={`px-4 py-1.5 text-[10px] font-mono font-semibold flex items-center justify-between border-b ${
-        isAdmin 
-          ? 'bg-emerald-950/20 border-emerald-900/30 text-emerald-400' 
-          : 'bg-amber-950/20 border-amber-900/30 text-amber-400'
-      }`}>
+      {/* Role Banner */}
+      <div 
+        className="px-4 py-1.5 text-[9px] font-bold flex items-center justify-between border-b"
+        style={{
+          background: isAdmin ? 'rgba(34, 197, 94, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+          borderColor: isAdmin ? 'rgba(34, 197, 94, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+          color: isAdmin ? 'var(--status-active)' : 'var(--status-warning)'
+        }}
+      >
         <div className="flex items-center space-x-1.5">
-          {isAdmin ? <ShieldCheck className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
-          <span>ROLE: {isAdmin ? 'ADMINISTRATIVE ACCESS' : 'FIELD MONITOR (READ-ONLY)'}</span>
+          {isAdmin ? <ShieldCheck className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+          <span>ROLE: {isAdmin ? 'COMMAND ADMINISTRATOR' : 'READ-ONLY OPERATOR'}</span>
         </div>
       </div>
 
-      {/* Overview Stat Cards */}
-      <div className="grid grid-cols-3 gap-2 p-3 bg-slate-900/50 border-b border-slate-800">
-        <div className="bg-slate-950/60 border border-slate-800/80 p-2 rounded-lg flex flex-col items-center">
-          <span className="text-slate-400 text-[10px] font-medium font-sans">Active Fleets</span>
-          <span className="text-lg font-bold font-mono text-indigo-400">{convoys.length}</span>
+      {/* Stats Header */}
+      <div className="grid grid-cols-3 gap-1 p-2 bg-[#030712]/40 border-b border-[var(--border-default)]">
+        <div className="bg-[#030712]/60 border border-[var(--border-subtle)] p-1.5 rounded flex flex-col items-center">
+          <span className="text-[var(--text-muted)] text-[8px] font-bold uppercase">FLEETS</span>
+          <span className="text-sm font-bold text-blue-400">{convoys.length}</span>
         </div>
-        <div className="bg-slate-950/60 border border-slate-800/80 p-2 rounded-lg flex flex-col items-center">
-          <span className="text-slate-400 text-[10px] font-medium font-sans">Warnings</span>
-          <span className={`text-lg font-bold font-mono ${warningCount > 0 ? 'text-amber-500 animate-pulse' : 'text-slate-500'}`}>{warningCount}</span>
+        <div className="bg-[#030712]/60 border border-[var(--border-subtle)] p-1.5 rounded flex flex-col items-center">
+          <span className="text-[var(--text-muted)] text-[8px] font-bold uppercase">WARN</span>
+          <span className={`text-sm font-bold ${warningCount > 0 ? 'text-[var(--status-warning)] animate-pulse' : 'text-[var(--text-muted)]'}`}>{warningCount}</span>
         </div>
-        <div className="bg-slate-950/60 border border-slate-800/80 p-2 rounded-lg flex flex-col items-center">
-          <span className="text-slate-400 text-[10px] font-medium font-sans">Rerouted</span>
-          <span className={`text-lg font-bold font-mono ${reroutedCount > 0 ? 'text-red-500 glow-text-red' : 'text-slate-500'}`}>{reroutedCount}</span>
+        <div className="bg-[#030712]/60 border border-[var(--border-subtle)] p-1.5 rounded flex flex-col items-center">
+          <span className="text-[var(--text-muted)] text-[8px] font-bold uppercase">REROUTE</span>
+          <span className={`text-sm font-bold ${reroutedCount > 0 ? 'text-[var(--status-critical)]' : 'text-[var(--text-muted)]'}`}>{reroutedCount}</span>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex bg-[#0b0f19] p-1 border-b border-slate-800/50">
+      {/* Tab Navigation */}
+      <div className="flex bg-[#030712] p-1 border-b border-[var(--border-default)]">
         <button
           onClick={() => setActiveTab('fleets')}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 flex flex-col items-center justify-center ${
-            activeTab === 'fleets' 
-              ? 'bg-slate-800 text-white shadow' 
-              : 'text-slate-400 hover:text-slate-200'
+          className={`flex-1 py-1 text-[9px] font-bold rounded transition-all flex flex-col items-center justify-center ${
+            activeTab === 'fleets' ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border-default)]' : 'text-[var(--text-secondary)] hover:text-white'
           }`}
         >
-          <Truck className="h-3.5 w-3.5" />
-          <span className="text-[9px] mt-0.5">Fleets</span>
+          <Ship className="h-3 w-3 mb-0.5" />
+          <span>FLEET</span>
         </button>
         <button
-          onClick={() => setActiveTab('hazards')}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 flex flex-col items-center justify-center ${
-            activeTab === 'hazards' 
-              ? 'bg-slate-800 text-white shadow' 
-              : 'text-slate-400 hover:text-slate-200'
+          onClick={() => setActiveTab('ports')}
+          className={`flex-1 py-1 text-[9px] font-bold rounded transition-all flex flex-col items-center justify-center ${
+            activeTab === 'ports' ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border-default)]' : 'text-[var(--text-secondary)] hover:text-white'
           }`}
         >
-          <Flame className="h-3.5 w-3.5" />
-          <span className="text-[9px] mt-0.5">Hazards</span>
+          <Anchor className="h-3 w-3 mb-0.5" />
+          <span>PORTS</span>
         </button>
         <button
           onClick={() => setActiveTab('timeline')}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 flex flex-col items-center justify-center ${
-            activeTab === 'timeline' 
-              ? 'bg-slate-800 text-white shadow' 
-              : 'text-slate-400 hover:text-slate-200'
+          className={`flex-1 py-1 text-[9px] font-bold rounded transition-all flex flex-col items-center justify-center ${
+            activeTab === 'timeline' ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border-default)]' : 'text-[var(--text-secondary)] hover:text-white'
           }`}
         >
-          <Clock className="h-3.5 w-3.5" />
-          <span className="text-[9px] mt-0.5">Timeline</span>
+          <Clock className="h-3 w-3 mb-0.5" />
+          <span>TIMELINE</span>
         </button>
         <button
           onClick={() => setActiveTab('controls')}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 flex flex-col items-center justify-center ${
-            activeTab === 'controls' 
-              ? 'bg-slate-800 text-white shadow' 
-              : 'text-slate-400 hover:text-slate-200'
+          className={`flex-1 py-1 text-[9px] font-bold rounded transition-all flex flex-col items-center justify-center ${
+            activeTab === 'controls' ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border-default)]' : 'text-[var(--text-secondary)] hover:text-white'
           }`}
         >
-          <ShieldAlert className="h-3.5 w-3.5" />
-          <span className="text-[9px] mt-0.5">Simulate</span>
+          <ShieldAlert className="h-3 w-3 mb-0.5" />
+          <span>SIMULATE</span>
         </button>
       </div>
 
-      {/* Tab Contents */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      {/* Tab content panel */}
+      <div className="flex-1 overflow-y-auto">
         
-        {/* TAB 1: FLEETS */}
+        {/* FLEETS TAB */}
         {activeTab === 'fleets' && (
-          <div className="space-y-2.5">
-            {convoys.length === 0 ? (
-              <div className="text-center py-8 text-xs text-slate-500">No fleets deployed. Dispatch new fleet.</div>
-            ) : (
-              convoys.map((convoy) => {
-                const isSelected = selectedConvoy?.id === convoy.id;
-                const isDriving = !!drivingIntervals[convoy.id];
-                
-                return (
-                  <div
-                    key={convoy.id}
-                    onClick={() => onSelectConvoy(convoy)}
-                    className={`p-3 rounded-xl border transition-all duration-200 cursor-pointer ${
-                      isSelected 
-                        ? 'bg-slate-800/80 border-indigo-500 shadow-md shadow-indigo-500/5' 
-                        : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-2">
-                        <div className={`p-1.5 rounded-lg ${
-                          convoy.status === 'REROUTED' 
-                            ? 'bg-red-950/50 text-red-400 border border-red-900/50' 
-                            : convoy.status === 'WARNING' 
-                              ? 'bg-amber-950/50 text-amber-400 border border-amber-900/50' 
-                              : 'bg-emerald-950/50 text-emerald-400 border border-emerald-900/50'
-                        }`}>
-                          <Truck className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-xs font-mono text-slate-200 uppercase tracking-wide">
-                            {convoy.call_sign}
-                          </h4>
-                          <p className="text-[10px] text-slate-400 font-medium">Cargo: {convoy.cargo_type}</p>
-                        </div>
-                      </div>
-                      
-                      {/* Integrated premium StatusBadge component */}
-                      <StatusBadge status={convoy.status} />
-                    </div>
-
-                    {/* Telemetry info */}
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] font-mono text-slate-400 bg-slate-950/40 p-2 rounded-lg border border-slate-800/50">
-                      <div>
-                        <span className="text-slate-500 font-sans block">Current Lat/Lon</span>
-                        <span>{convoy.lat.toFixed(4)}, {convoy.lon.toFixed(4)}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500 font-sans block">Destination</span>
-                        <span>{convoy.dest_lat.toFixed(4)}, {convoy.dest_lon.toFixed(4)}</span>
-                      </div>
-                    </div>
-
-                    {/* AI reroute prompt display if REROUTED */}
-                    {convoy.status === 'REROUTED' && convoy.ai_directive && (
-                      <div className="mt-2.5 p-2.5 bg-red-950/20 border border-red-900/30 rounded-lg">
-                        <div className="flex items-center space-x-1.5 text-red-400 font-semibold text-[10px] uppercase font-mono tracking-wider">
-                          <ShieldAlert className="h-3 w-3" />
-                          <span>AI REROUTING DIRECTIVE</span>
-                        </div>
-                        <p className="text-[10px] text-red-300 font-medium mt-1 font-mono leading-relaxed">
-                          → {convoy.ai_directive.recommended_detour} (+{convoy.ai_directive.estimated_delay_minutes} min)
-                        </p>
-                      </div>
-                    )}
-                    
-                    {/* Inline drive button (Admin Only) */}
-                    {isAdmin && (
-                      <div className="mt-2.5 flex justify-end">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleDriveSimulation(convoy);
-                          }}
-                          className={`text-[9px] font-bold font-mono px-2 py-1 rounded-md flex items-center space-x-1 transition-all ${
-                            isDriving 
-                              ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20' 
-                              : 'bg-indigo-650 text-white hover:bg-indigo-600'
-                          }`}
-                        >
-                          {isDriving ? (
-                            <>
-                              <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-ping"></span>
-                              <span>STOP TELEMETRY</span>
-                            </>
-                          ) : (
-                            <>
-                              <Play className="h-2.5 w-2.5 fill-current" />
-                              <span>DRIVE SIMULATION</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
-
-        {/* TAB 2: HAZARDS */}
-        {activeTab === 'hazards' && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between pb-1">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Ingested Hazards</span>
-              {isAdmin && (
-                <button 
-                  onClick={handleRunIngestion}
-                  disabled={ingesting}
-                  className="text-[9px] font-bold font-mono text-indigo-400 hover:text-indigo-300 flex items-center space-x-1 cursor-pointer"
-                >
-                  <RefreshCw className={`h-2.5 w-2.5 ${ingesting ? 'animate-spin' : ''}`} />
-                  <span>{ingesting ? 'SYNCING...' : 'SYNC NASA NOW'}</span>
-                </button>
-              )}
+          <div>
+            <div className="px-4 py-3 border-b border-[var(--border-subtle)]">
+              <span className="color-[var(--text-muted)] text-[10px] tracking-wider uppercase">
+                DEPLOYED FLEETS — {convoys.length} UNITS
+              </span>
             </div>
-            
-            {incidents.length === 0 ? (
-              <div className="text-center py-8 text-xs text-slate-500 bg-slate-900/40 rounded-xl border border-slate-800">
-                No active hazards detected. Fetch NASA data or spawn simulated incidents.
-              </div>
-            ) : (
-              incidents.slice(0, 50).map((hazard) => { // limit displaying to first 50 to avoid DOM bloating
-                const getHazardEmoji = (type) => {
-                  if (type === 'wildfires') return '🔥';
-                  if (type === 'severeStorms') return '⛈️';
-                  if (type === 'floods') return '🌊';
-                  if (type === 'volcanoes') return '🌋';
-                  return '⚠️';
-                };
-                
-                return (
-                  <div
-                    key={hazard.id}
-                    className="p-3 bg-slate-900/50 border border-slate-800 rounded-xl flex items-start space-x-2.5"
-                  >
-                    <div className="text-base p-1.5 bg-slate-950 border border-slate-800/80 rounded-lg flex-shrink-0">
-                      {getHazardEmoji(hazard.hazard_type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9px] font-bold font-mono uppercase text-red-400 bg-red-950/30 px-1.5 py-0.5 rounded border border-red-900/20">
-                          {hazard.hazard_type}
-                        </span>
-                        <span className="text-[9px] font-mono text-slate-500">
-                          {hazard.radius_km} km radius
-                        </span>
-                      </div>
-                      <h4 className="font-bold text-xs text-slate-200 mt-1 truncate">
-                        {hazard.title}
-                      </h4>
-                      <p className="text-[9px] text-slate-500 font-mono mt-1">
-                        Lat: {hazard.lat.toFixed(4)}, Lon: {hazard.lon.toFixed(4)}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
-
-        {/* TAB 3: TIMELINE EVENT FEED */}
-        {activeTab === 'timeline' && (
-          <div className="space-y-2">
-            <div className="flex justify-between items-center pb-1">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Mission Timeline Feed</span>
-              {isAdmin && logs.length > 0 && (
-                <button
-                  onClick={async () => {
-                    await fetch('http://localhost:5000/api/mission_logs/clear', { method: 'POST' });
+            {convoys.map(convoy => {
+              const isSelected = selectedConvoy?.id === convoy.id;
+              
+              return (
+                <div 
+                  key={convoy.id}
+                  onClick={() => onSelectConvoy(convoy)}
+                  style={{
+                    padding: '12px 16px',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    transition: 'background 0.15s',
+                    cursor: 'pointer'
                   }}
-                  className="text-[9px] font-bold font-mono text-red-400 hover:text-red-300"
+                  className={`${isSelected ? 'bg-[var(--bg-elevated)] border-l-2 border-blue-500' : 'hover:bg-[var(--bg-elevated)]'}`}
                 >
-                  CLEAR LOGS
-                </button>
-              )}
-            </div>
-            
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 13, fontFamily: 'monospace' }}>
+                      {convoy.call_sign}
+                    </span>
+                    <StatusBadge status={convoy.status} />
+                  </div>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{convoy.cargo_type}</div>
+                  <div className="flex justify-between items-center text-[10px] text-[var(--text-muted)] mt-1 font-mono">
+                    <span>
+                      {convoy.lat.toFixed(4)}°N  {Math.abs(convoy.lon).toFixed(4)}°W
+                    </span>
+                    {convoy.destination_port && (
+                      <span className="text-blue-400 font-bold">
+                        → {convoy.destination_port}
+                      </span>
+                    )}
+                  </div>
+                  {convoy.ai_directive && (
+                    <div style={{
+                      marginTop: 8, padding: '6px 8px',
+                      background: 'rgba(239, 68, 68, 0.08)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: 4, fontSize: 11, color: 'var(--status-critical)',
+                    }}>
+                      → {(convoy.ai_directive.recommended_action || convoy.ai_directive.recommended_detour || "").slice(0, 60)}...
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* PORTS TAB */}
+        {activeTab === 'ports' && (
+          <div className="p-3 space-y-2">
+            <span className="text-[10px] text-[var(--text-muted)] tracking-wider uppercase block pb-1">
+              PORT TERMINAL CONGESTION
+            </span>
+            {ports && ports.map(port => {
+              const congestionColor = port.congestion_level > 0.25 ? 'var(--status-warning)' : 'var(--status-active)';
+              return (
+                <div key={port.id} className="p-2.5 bg-[#030712]/30 border border-[var(--border-subtle)] rounded flex flex-col space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-xs text-[var(--text-primary)] font-sans">⚓ {port.name}</span>
+                    <StatusBadge status={port.status} />
+                  </div>
+                  <div className="w-full bg-slate-800 rounded-full h-1.5 mt-1 relative overflow-hidden">
+                    <div 
+                      className="h-full rounded-full" 
+                      style={{ 
+                        width: `${port.congestion_level * 100}%`,
+                        backgroundColor: congestionColor 
+                      }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-[var(--text-secondary)] mt-0.5 font-mono">
+                    <span>Congestion: {(port.congestion_level * 100).toFixed(0)}%</span>
+                    <span>Coordinates: {port.latitude.toFixed(1)}°N {port.longitude.toFixed(1)}°E</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* TIMELINE TAB */}
+        {activeTab === 'timeline' && (
+          <div className="p-3 space-y-2">
+            <span className="text-[10px] text-[var(--text-muted)] tracking-wider uppercase block pb-1">
+              LATEST TELEMETRY EVENTS
+            </span>
             <MissionLog events={logs} />
           </div>
         )}
 
-        {/* TAB 4: CONTROLS & SIMULATOR */}
+        {/* CONTROLS TAB */}
         {activeTab === 'controls' && (
-          <div className="space-y-4">
-            
-            {/* RBAC Lockdown Warning */}
+          <div className="p-3 space-y-4">
             {!isAdmin && (
-              <div className="p-3 bg-amber-950/20 border border-amber-900/30 rounded-xl text-amber-400 text-[10px] font-mono leading-relaxed flex items-start space-x-2">
-                <Lock className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                <span>ADMINISTRATIVE CONTROLS LOCKED. LOG IN WITH AN ADMINISTRATIVE OPERATOR ROLE TO SPAWN THREATS OR MANUALLY TRIGGER ROUTE COMPILATIONS.</span>
+              <div className="p-3 bg-amber-950/20 border border-amber-900/30 rounded text-amber-400 text-[10px] leading-relaxed flex items-start space-x-2">
+                <Lock className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                <span>COMMAND LOCK: OPERATOR SESSIONS ARE READ-ONLY. SIGN IN AS A COMMAND ADMINISTRATOR TO MODIFY HAZARDS AND TRIGGER AI RE-ROUTING.</span>
               </div>
             )}
 
-            {/* Simulation triggers */}
-            <div className={`bg-slate-900/60 border border-slate-800 p-3 rounded-xl space-y-2.5 transition-all ${!isAdmin ? 'opacity-40 pointer-events-none' : ''}`}>
-              <h4 className="font-bold text-xs text-slate-200 font-mono tracking-wide uppercase">Manual Collision Spawner</h4>
-              <p className="text-[10px] text-slate-400">
-                Instantly spawn a hazard directly along a convoy's trajectory to test real-time distance logic and Gemini AI rerouting advice.
+            {/* Simulated Hazards Spawner */}
+            <div className={`p-3 bg-[#030712]/30 border border-[var(--border-subtle)] rounded-lg space-y-2.5 ${!isAdmin ? 'opacity-40 pointer-events-none' : ''}`}>
+              <h4 className="font-bold text-xs text-[var(--text-primary)] uppercase">DISRUPTION GENERATOR</h4>
+              <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
+                Inject localized climate/maritime hazards near sailing vessels to test multi-criteria routing updates.
               </p>
               
-              <div className="space-y-2 mt-2">
-                {convoys.map((convoy) => (
-                  <div key={convoy.id} className="flex flex-col p-2 bg-slate-950 border border-slate-800 rounded-lg space-y-1.5">
-                    <span className="text-[10px] font-bold font-mono text-slate-300 uppercase">{convoy.call_sign}</span>
+              <div className="space-y-2 pt-1">
+                {convoys.map(convoy => (
+                  <div key={convoy.id} className="p-2 bg-[#030712]/80 border border-[var(--border-subtle)] rounded space-y-1.5">
+                    <div className="text-[10px] font-bold text-[var(--text-primary)] font-mono uppercase">{convoy.call_sign}</div>
                     <div className="grid grid-cols-2 gap-1.5">
                       <button
-                        onClick={() => spawnTestHazardNearConvoy(convoy, 'wildfires')}
+                        onClick={() => spawnTestHazardNearConvoy(convoy, 'storm')}
                         disabled={!isAdmin}
-                        className="py-1 px-1.5 bg-orange-655/10 hover:bg-orange-600/25 border border-orange-500/20 text-orange-400 font-bold text-[9px] font-mono rounded-md flex items-center justify-center space-x-1 cursor-pointer"
+                        className="py-1 px-1.5 bg-blue-900/20 hover:bg-blue-800/40 border border-blue-800/50 text-blue-400 font-bold text-[9px] rounded flex items-center justify-center space-x-1 cursor-pointer transition-colors"
                       >
-                        <span>🔥 Spawn Fire</span>
+                        <span>⛈️ Spawn Storm</span>
                       </button>
                       <button
-                        onClick={() => spawnTestHazardNearConvoy(convoy, 'floods')}
+                        onClick={() => spawnTestHazardNearConvoy(convoy, 'earthquake')}
                         disabled={!isAdmin}
-                        className="py-1 px-1.5 bg-blue-655/10 hover:bg-blue-600/25 border border-blue-500/20 text-blue-400 font-bold text-[9px] font-mono rounded-md flex items-center justify-center space-x-1 cursor-pointer"
+                        className="py-1 px-1.5 bg-amber-900/20 hover:bg-amber-800/40 border border-amber-800/50 text-amber-400 font-bold text-[9px] rounded flex items-center justify-center space-x-1 cursor-pointer transition-colors"
                       >
-                        <span>🌊 Spawn Flood</span>
+                        <span>🌋 Seakequake</span>
                       </button>
                     </div>
                   </div>
@@ -432,45 +302,36 @@ const LiveSidebar = ({ selectedConvoy, onSelectConvoy }) => {
               </div>
             </div>
 
-            {/* Global system resets */}
-            <div className={`bg-slate-900/60 border border-slate-800 p-3 rounded-xl space-y-3 transition-all ${!isAdmin ? 'opacity-40 pointer-events-none' : ''}`}>
-              <h4 className="font-bold text-xs text-slate-200 font-mono tracking-wide uppercase">System Command Panel</h4>
+            {/* System Actions */}
+            <div className={`p-3 bg-[#030712]/30 border border-[var(--border-subtle)] rounded-lg space-y-2.5 ${!isAdmin ? 'opacity-40 pointer-events-none' : ''}`}>
+              <h4 className="font-bold text-xs text-[var(--text-primary)] uppercase">OPERATIONAL CONTROLS</h4>
               
               <button
                 onClick={handleRunIngestion}
                 disabled={ingesting || !isAdmin}
-                className="w-full py-2 bg-slate-850 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold text-xs rounded-lg flex items-center justify-center space-x-2 transition cursor-pointer"
+                className="w-full py-1.5 bg-[var(--bg-elevated)] hover:bg-[#334155] border border-[var(--border-default)] text-[var(--text-primary)] font-bold text-[11px] rounded flex items-center justify-center space-x-2 transition cursor-pointer"
               >
-                <RefreshCw className={`h-4 w-4 text-indigo-400 ${ingesting ? 'animate-spin' : ''}`} />
-                <span>Force NASA EONET Ingest</span>
+                <RefreshCw className={`h-3 w-3 text-blue-400 ${ingesting ? 'animate-spin' : ''}`} />
+                <span>FORCE TELEMETRY INGEST</span>
               </button>
 
               <button
                 onClick={resetConvoys}
                 disabled={!isAdmin}
-                className="w-full py-2 bg-slate-850 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold text-xs rounded-lg flex items-center justify-center space-x-2 transition cursor-pointer"
+                className="w-full py-1.5 bg-[var(--bg-elevated)] hover:bg-[#334155] border border-[var(--border-default)] text-[var(--text-primary)] font-bold text-[11px] rounded flex items-center justify-center space-x-2 transition cursor-pointer"
               >
-                <RotateCcw className="h-4 w-4 text-amber-400" />
-                <span>Reset Fleet Telemetry</span>
+                <RotateCcw className="h-3 w-3 text-amber-400" />
+                <span>RESET SIMULATION CORRIDORS</span>
               </button>
 
               <button
                 onClick={clearSimulation}
                 disabled={!isAdmin}
-                className="w-full py-2 bg-red-650/15 hover:bg-red-650/25 border border-red-500/30 text-red-400 font-bold text-xs rounded-lg flex items-center justify-center space-x-2 transition cursor-pointer"
+                className="w-full py-1.5 bg-[#ef4444]/10 hover:bg-[#ef4444]/25 border border-[#ef4444]/30 text-red-400 font-bold text-[11px] rounded flex items-center justify-center space-x-2 transition cursor-pointer"
               >
-                <Trash2 className="h-4 w-4 text-red-400" />
-                <span>Clear All Hazard Zones</span>
+                <Trash2 className="h-3 w-3 text-red-400" />
+                <span>CLEAR DISRUPTIONS</span>
               </button>
-            </div>
-            
-            {/* System Specs panel */}
-            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl font-mono text-[9px] text-slate-500 space-y-1">
-              <div className="flex justify-between"><span>Simulation Interval:</span><span className="text-slate-400">10s (Active GPS Loop)</span></div>
-              <div className="flex justify-between"><span>Ingestion Interval:</span><span className="text-slate-400">5 min (Scheduled)</span></div>
-              <div className="flex justify-between"><span>Spatial Equation:</span><span className="text-slate-400">Haversine Great-Circle</span></div>
-              <div className="flex justify-between"><span>Generative Anchor:</span><span className="text-slate-400">gemini-1.5-flash</span></div>
-              <div className="flex justify-between"><span>Meteorology Feed:</span><span className="text-slate-400">Open-Meteo REST API</span></div>
             </div>
 
           </div>
@@ -478,30 +339,28 @@ const LiveSidebar = ({ selectedConvoy, onSelectConvoy }) => {
 
       </div>
 
-      {/* Selected Convoy Details footer */}
+      {/* Selected Vessel Footer panel */}
       {selectedConvoy && (
-        <div className="p-3 border-t border-slate-800 bg-[#0a0f1d] text-xs space-y-2 animate-fade-in">
+        <div className="p-3 border-t border-[var(--border-default)] bg-[#0a0f1d] text-[11px] space-y-2 animate-fade-in">
           <div className="flex justify-between items-center">
-            <span className="font-bold text-[10px] uppercase font-mono tracking-wider text-slate-400">Selected Telemetry</span>
+            <span className="font-bold text-[9px] uppercase text-[var(--text-muted)]">VESSEL STATS</span>
             <button 
               onClick={() => onSelectConvoy(null)}
-              className="text-[9px] font-bold font-mono text-slate-500 hover:text-slate-400 uppercase"
+              className="text-[9px] font-bold text-[var(--text-secondary)] hover:text-white"
             >
-              Close
+              CLOSE
             </button>
           </div>
           <div className="flex items-center justify-between">
-            <span className="font-bold text-slate-200">{selectedConvoy.call_sign}</span>
-            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-              selectedConvoy.status === 'REROUTED' ? 'text-red-400 bg-red-950/30' : selectedConvoy.status === 'WARNING' ? 'text-amber-400 bg-amber-950/30' : 'text-emerald-400 bg-emerald-950/30'
-            }`}>
-              {selectedConvoy.status}
-            </span>
+            <span className="font-bold text-[var(--text-primary)]">{selectedConvoy.call_sign}</span>
+            <StatusBadge status={selectedConvoy.status} />
           </div>
-          <div className="font-mono text-[10px] text-slate-400 leading-relaxed bg-slate-950/50 p-2 rounded-lg border border-slate-900">
-            <div>Cargo: {selectedConvoy.cargo_type}</div>
-            <div>Pos: {selectedConvoy.lat.toFixed(5)}, {selectedConvoy.lon.toFixed(5)}</div>
-            <div>Dest: {selectedConvoy.dest_lat.toFixed(5)}, {selectedConvoy.dest_lon.toFixed(5)}</div>
+          <div className="font-mono text-[10px] text-[var(--text-secondary)] leading-relaxed bg-[#030712] p-2 border border-[var(--border-subtle)] rounded">
+            <div>Type: {selectedConvoy.cargo_type}</div>
+            <div>Position: {selectedConvoy.lat.toFixed(4)}°N {Math.abs(selectedConvoy.lon).toFixed(4)}°W</div>
+            {selectedConvoy.destination_port && (
+              <div>Destination Port: {selectedConvoy.destination_port}</div>
+            )}
           </div>
         </div>
       )}

@@ -36,3 +36,11 @@ db.json
 # OS Metadata
 .DS_Store
 Thumbs.db
+
+# Python virtual environment & sqlite
+venv/
+backend/venv/
+*.db
+logistics.db
+backend/logistics.db
+

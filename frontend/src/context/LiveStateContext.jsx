@@ -7,6 +7,9 @@ export const LiveStateProvider = ({ children }) => {
   const [convoys, setConvoys] = useState([]);
   const [incidents, setIncidents] = useState([]);
   const [logs, setLogs] = useState([]);
+  const [ports, setPorts] = useState([]);
+  const [lanes, setLanes] = useState([]);
+  const [customsBuffers, setCustomsBuffers] = useState([]);
   const [latestAlert, setLatestAlert] = useState(null);
   const [isConnecting, setIsConnecting] = useState(true);
 
@@ -25,6 +28,15 @@ export const LiveStateProvider = ({ children }) => {
         const sorted = [...logsData].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
         setLogs(sorted);
       }
+
+      const { data: portsData } = await supabase.from('ports').select('*');
+      if (portsData) setPorts(portsData);
+
+      const { data: lanesData } = await supabase.from('shipping_lanes').select('*');
+      if (lanesData) setLanes(lanesData);
+
+      const { data: buffersData } = await supabase.from('customs_buffers').select('*');
+      if (buffersData) setCustomsBuffers(buffersData);
     } catch (err) {
       console.error("Error fetching initial telemetry:", err);
     } finally {
@@ -152,6 +164,9 @@ export const LiveStateProvider = ({ children }) => {
     convoys,
     incidents,
     logs,
+    ports,
+    lanes,
+    customsBuffers,
     latestAlert,
     setLatestAlert,
     moveConvoy,
