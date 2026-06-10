@@ -33,6 +33,12 @@ async def get_weather_risk(lat: float, lon: float) -> dict:
         wind_speed = float((abs(lat) + abs(lon)) % 35.0)
         wave_height = float((abs(lat) * abs(lon)) % 6.0) / 1.5
 
+    # Guard against None values from land coordinates or missing forecast fields
+    if wind_speed is None:
+        wind_speed = 12.0
+    if wave_height is None:
+        wave_height = 1.0
+
     # Normalize scores:
     # High wind speed > 50 km/h is severe
     # High wave height > 4m is severe
