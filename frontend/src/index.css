@@ -1,0 +1,89 @@
+@import "tailwindcss";
+@import 'leaflet/dist/leaflet.css';
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #0b0f19;
+  color: #f8fafc;
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+/* Scrollbar customizations */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0b0f19;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Leaflet dark theme modifications */
+.leaflet-container {
+  background: #0b0f19 !important;
+  font-family: inherit;
+}
+
+/* Hide zoom controls to maintain minimal tactical dashboard aesthetic */
+.leaflet-control-zoom {
+  border: 1px solid #1e293b !important;
+  background: #0f172a !important;
+}
+
+.leaflet-control-zoom-in, .leaflet-control-zoom-out {
+  background-color: #0f172a !important;
+  color: #94a3b8 !important;
+  border-bottom: 1px solid #1e293b !important;
+}
+
+.leaflet-control-zoom-in:hover, .leaflet-control-zoom-out:hover {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+/* Custom pulsing animations for hazards on the map */
+.hazard-pulse {
+  position: relative;
+}
+
+.hazard-pulse::after {
+  content: '';
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.4);
+  position: absolute;
+  top: 0;
+  left: 0;
+  animation: mapPulse 2s infinite ease-out;
+}
+
+@keyframes mapPulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* Glowing text effects */
+.glow-text-amber {
+  text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+}
+
+.glow-text-red {
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
